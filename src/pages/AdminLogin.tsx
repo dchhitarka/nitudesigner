@@ -1,8 +1,8 @@
-import React, { useState } from "react";
 import { signInWithEmailAndPassword } from "firebase/auth";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "../components/ui/button";
 import { auth } from "../utils/firebase";
-import { useNavigate } from "react-router-dom";
 
 export default function AdminLogin() {
   const [loginInfo, setLoginInfo] = useState({ email: "", password: "" });
@@ -12,7 +12,11 @@ export default function AdminLogin() {
   const handleLogin = async () => {
     setLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, loginInfo.email, loginInfo.password);
+      await signInWithEmailAndPassword(
+        auth,
+        loginInfo.email,
+        loginInfo.password
+      );
       navigate("/admin");
     } catch (err: any) {
       alert("Login failed: " + err.message);
@@ -28,14 +32,16 @@ export default function AdminLogin() {
         placeholder="Email"
         className="border p-2 w-full mb-2"
         value={loginInfo.email}
-        onChange={e => setLoginInfo({ ...loginInfo, email: e.target.value })}
+        onChange={(e) => setLoginInfo({ ...loginInfo, email: e.target.value })}
       />
       <input
         type="password"
         placeholder="Password"
         className="border p-2 w-full mb-2"
         value={loginInfo.password}
-        onChange={e => setLoginInfo({ ...loginInfo, password: e.target.value })}
+        onChange={(e) =>
+          setLoginInfo({ ...loginInfo, password: e.target.value })
+        }
       />
       <Button onClick={handleLogin} disabled={loading}>
         {loading ? "Logging in..." : "Login"}
