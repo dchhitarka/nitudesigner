@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import classNames from "classnames";
 
 export const Button = ({
@@ -8,7 +9,7 @@ export const Button = ({
   variant = "default"
 }: {
   children: React.ReactNode;
-  onClick?: () => void;
+  onClick?: (e: any) => void;
   className?: string;
   disabled?: boolean;
   variant?: "default" | "destructive";
