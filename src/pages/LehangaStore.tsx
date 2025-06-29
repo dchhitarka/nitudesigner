@@ -25,9 +25,9 @@ export default function LehangaStore() {
   const [currentImage, setCurrentImage] = useState<string | null>(null);
   const [currentIndex, setCurrentIndex] = useState<number | null>(null);
   const [currentCategory, setCurrentCategory] = useState<string>("All");
-  const [categories, setCategories] = useState<{ id: string; name: string }[]>([
-    { id: "all", name: "All" },
-  ]);
+  const [categories, setCategories] = useState<{ id: string; name?: string }[]>(
+    [{ id: "all", name: "All" }]
+  );
 
   const [adminUser, setAdminUser] = useState<{
     id: string;
@@ -69,7 +69,7 @@ export default function LehangaStore() {
 
     const catRef = collection(db, "categories");
     const unsubCats = onSnapshot(catRef, (snapshot) => {
-      const catList: { id: string; name: string }[] = [
+      const catList: { id: string; name?: string }[] = [
         { id: "all", name: "All" },
       ];
       snapshot.forEach((doc) => {
@@ -172,7 +172,6 @@ export default function LehangaStore() {
   };
 
   const filteredImages = images.filter((img) => {
-    console.log(img);
     const inCategory =
       currentCategory === "All" || img.category === currentCategory;
     const matchesSearch = img.url
@@ -283,34 +282,34 @@ export default function LehangaStore() {
                       e.stopPropagation();
                       toggleFavorite(url);
                     }}
-                    className="absolute top-2 left-2 text-xl sm:text-2xl transition-transform hover:scale-110 z-10"
+                    className="absolute top-2 opacity-70 left-2 text-xl sm:text-2xl transition-transform hover:scale-110 z-10"
                     aria-label="Toggle favorite"
                   >
                     {favorites.includes(url) ? "❤️" : "🤍"}
                   </button>
 
                   {/* Hover Overlay */}
-                  <div className="absolute focus-within:opacity-100 inset-0 bg-opacity-0 group-hover:bg-opacity-40 transition-all duration-300 flex items-end justify-center pb-3">
-                    <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 transform translate-y-2 group-hover:translate-y-0">
+                  <div className="absolute inset-0 bg-opacity-0 md:group-hover:bg-opacity-40 transition-all duration-300 flex items-end justify-center pb-3">
+                    <div className="flex gap-2 md:opacity-0 sm:opacity-100 group-hover:opacity-100 transition-opacity duration-300 transform translate-y-2 group-hover:translate-y-0">
                       <Button
                         onClick={(e) => {
                           e.stopPropagation();
                           openModal(url);
                         }}
-                        className="bg-white text-gray-800 hover:bg-gray-100 text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2 h-auto font-medium shadow-md"
+                        className="bg-white text-gray-800 opacity-70 hover:bg-gray-100 text-xs sm:text-sm px-1 md:px-2 py-1 md:py-2 h-10 sm:w-8 md:h-auto font-medium shadow-md"
                       >
-                        <span className="mr-1">🔍</span>
-                        View
+                        <span className="md:mr-1">🔍</span>
+                        <span className="hidden md:block">View</span>
                       </Button>
                       <Button
                         onClick={(e) => {
                           e.stopPropagation();
                           shareSingleImage(url);
                         }}
-                        className="bg-blue-500 hover:bg-blue-600 text-white text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2 h-auto font-medium shadow-md"
+                        className="bg-blue-500 hover:bg-blue-600 opacity-70 text-white text-xs sm:text-sm px-1 md:px-2 py-1 md:py-2 h-10 sm:w-8 md:h-auto font-medium shadow-md"
                       >
-                        <span className="mr-1">📤</span>
-                        Share
+                        <span className="md:mr-1">📤</span>
+                        <span className="hidden md:block">Share</span>
                       </Button>
                     </div>
                   </div>

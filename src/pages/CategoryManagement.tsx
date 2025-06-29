@@ -1,27 +1,28 @@
 // CategoryManagement.jsx - Separate component for managing categories
 import { onAuthStateChanged } from "firebase/auth";
 import {
-    addDoc,
-    collection,
-    deleteDoc,
-    doc,
-    onSnapshot,
-    updateDoc,
+  addDoc,
+  collection,
+  deleteDoc,
+  doc,
+  onSnapshot,
+  updateDoc,
 } from "firebase/firestore";
-import { deleteObject, listAll, ref, uploadBytes } from "firebase/storage";
 import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "../components/ui/button";
-import { auth, db, storage } from "../utils/firebase";
+import { auth, db } from "../utils/firebase";
 
 export default function CategoryManagement() {
   const navigate = useNavigate();
-  const [images, setImages] = useState<{ url: string; category: string }[]>([]);
+  const [images, setImages] = useState<
+    { id: string; url: string; category: string }[]
+  >([]);
   const [newCategory, setNewCategory] = useState<string>("");
-  const [categories, setCategories] = useState<{ id: string; name: string }[]>([
-    { id: "all", name: "All" },
-  ]);
+  const [categories, setCategories] = useState<{ id: string; name?: string }[]>(
+    [{ id: "all", name: "All" }]
+  );
 
   useEffect(() => {
     const unsubAuth = onAuthStateChanged(auth, (user) => {
@@ -38,12 +39,13 @@ export default function CategoryManagement() {
   const fetchImages = async () => {
     const productsRef = collection(db, "products");
     onSnapshot(productsRef, (snapshot) => {
-      const imageData: { url: string; category: string }[] = [];
+      const imageData: { id: string; url: string; category: string }[] = [];
       snapshot.forEach((doc) => {
         const data = doc.data();
-        if (data.image && data.category) {
+        if (data.imageUrl && data.category) {
           imageData.push({
-            url: `data:image/jpeg;base64,${data.image}`,
+            id: data.id,
+            url: `data:image/jpeg;base64,${data.imageUrl}`,
             category: data.category,
           });
         }
@@ -55,7 +57,9 @@ export default function CategoryManagement() {
   const subscribeToCategories = () => {
     const catRef = collection(db, "categories");
     return onSnapshot(catRef, (snapshot) => {
-      const catList: any[] = [{ id: "all", name: "All" }];
+      const catList: { id: string; name?: string }[] = [
+        { id: "all", name: "All" },
+      ];
       snapshot.forEach((doc) => {
         catList.push({ id: doc.id, ...doc.data() });
       });
@@ -70,6 +74,7 @@ export default function CategoryManagement() {
         setNewCategory("");
         toast.success("Category added successfully!");
       } catch (error) {
+        console.log(error);
         toast.error("Failed to add category. Please try again.");
       }
     } else {
@@ -100,24 +105,16 @@ export default function CategoryManagement() {
       }
 
       toast.loading("Migrating images...");
-      const imageListRef = ref(storage, "lehangaImages/");
-      const res = await listAll(imageListRef);
-      for (const item of res.items) {
-        const fileName = decodeURIComponent(item.name);
-        if (fileName.startsWith(`${categoryName}--`)) {
-          const newFileName = fileName.replace(
-            `${categoryName}--`,
-            `${targetCategory.name}--`
-          );
-          const newRef = ref(storage, `lehangaImages/${newFileName}`);
-          const blob = await item
-            .getDownloadURL()
-            .then((url: string) => fetch(url))
-            .then((res: Response) => res.blob());
-          await uploadBytes(newRef, blob);
-          await deleteObject(item);
-        }
-      }
+      images
+        .filter((img) => img.category === categoryName)
+        .forEach(
+          async (image: { id: string; url: string; category: string }) => {
+            const productRef = doc(db, "products", image.id);
+            await updateDoc(productRef, {
+              category: targetCategory,
+            });
+          }
+        );
       toast.dismiss();
       toast.success("Images moved successfully.");
     }
@@ -135,6 +132,7 @@ export default function CategoryManagement() {
                   await deleteDoc(doc(db, "categories", id));
                   toast.success("Category deleted.");
                 } catch (error) {
+                  console.log(error);
                   toast.error("Failed to delete category.");
                 }
               }}
@@ -161,6 +159,7 @@ export default function CategoryManagement() {
         await updateDoc(doc(db, "categories", id), { name: newCatName });
         toast.success("Category renamed successfully!");
       } catch (error) {
+        console.log(error);
         toast.error("Failed to rename category. Please try again.");
       }
     }
@@ -196,22 +195,31 @@ export default function CategoryManagement() {
               <div className="text-3xl font-bold bg-gradient-to-r from-blue-500 to-blue-600 bg-clip-text text-transparent">
                 {categories.length - 1}
               </div>
-              <div className="text-sm text-gray-600 mt-1 font-medium">Total Categories</div>
+              <div className="text-sm text-gray-600 mt-1 font-medium">
+                Total Categories
+              </div>
             </div>
             <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200 text-center transform hover:scale-105 transition-all duration-200">
               <div className="text-3xl font-bold bg-gradient-to-r from-green-500 to-green-600 bg-clip-text text-transparent">
                 {images.length}
               </div>
-              <div className="text-sm text-gray-600 mt-1 font-medium">Total Images</div>
+              <div className="text-sm text-gray-600 mt-1 font-medium">
+                Total Images
+              </div>
             </div>
             <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200 text-center transform hover:scale-105 transition-all duration-200">
               <div className="text-3xl font-bold bg-gradient-to-r from-purple-500 to-purple-600 bg-clip-text text-transparent">
-                {categories.filter(cat => 
-                  cat.name !== "All" && 
-                  images.some(img => img.category === cat.name)
-                ).length}
+                {
+                  categories.filter(
+                    (cat) =>
+                      cat.name !== "All" &&
+                      images.some((img) => img.category === cat.name)
+                  ).length
+                }
               </div>
-              <div className="text-sm text-gray-600 mt-1 font-medium">Categories in Use</div>
+              <div className="text-sm text-gray-600 mt-1 font-medium">
+                Categories in Use
+              </div>
             </div>
           </div>
 
@@ -221,9 +229,11 @@ export default function CategoryManagement() {
               <h2 className="text-2xl font-bold text-gray-800 mb-2">
                 ➕ Add New Category
               </h2>
-              <p className="text-gray-600">Create a new category to organize your collection</p>
+              <p className="text-gray-600">
+                Create a new category to organize your collection
+              </p>
             </div>
-            
+
             <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-6 border border-green-200">
               <div className="flex flex-col sm:flex-row gap-4 max-w-2xl mx-auto">
                 <input
@@ -231,9 +241,9 @@ export default function CategoryManagement() {
                   placeholder="Enter new category name (e.g., Wedding, Party, Traditional)"
                   value={newCategory}
                   onChange={(e) => setNewCategory(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && addNewCategory()}
+                  onKeyPress={(e) => e.key === "Enter" && addNewCategory()}
                 />
-                <Button 
+                <Button
                   onClick={addNewCategory}
                   disabled={!newCategory.trim()}
                   className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-8 py-3 rounded-xl shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-105"
@@ -251,7 +261,9 @@ export default function CategoryManagement() {
               <h2 className="text-2xl font-bold text-gray-800 mb-2">
                 📋 Existing Categories
               </h2>
-              <p className="text-gray-600">Manage your existing product categories</p>
+              <p className="text-gray-600">
+                Manage your existing product categories
+              </p>
             </div>
 
             {categories.filter((cat) => cat.name !== "All").length === 0 ? (
@@ -261,7 +273,8 @@ export default function CategoryManagement() {
                   No categories yet
                 </h3>
                 <p className="text-gray-500 text-lg max-w-md mx-auto">
-                  Create your first category to start organizing your lehenga collection
+                  Create your first category to start organizing your lehenga
+                  collection
                 </p>
               </div>
             ) : (
@@ -269,9 +282,14 @@ export default function CategoryManagement() {
                 {categories
                   .filter((cat) => cat.name !== "All")
                   .map((cat) => {
-                    const imageCount = images.filter((img) => img.category === cat.name).length;
+                    const imageCount = images.filter(
+                      (img) => img.category === cat.name
+                    ).length;
                     return (
-                      <div key={cat.id} className="flex flex-col lg:flex-row lg:items-center gap-6 p-6 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl border border-gray-200 hover:shadow-lg transition-all duration-200">
+                      <div
+                        key={cat.id}
+                        className="flex flex-col lg:flex-row lg:items-center gap-6 p-6 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl border border-gray-200 hover:shadow-lg transition-all duration-200"
+                      >
                         <div className="flex-1">
                           <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                             <span className="text-xl font-bold text-gray-800">
@@ -289,26 +307,30 @@ export default function CategoryManagement() {
                             </div>
                           </div>
                         </div>
-                        
+
                         <div className="flex flex-col sm:flex-row gap-3">
                           <Button
-                            onClick={() => renameCategory(cat.id, cat.name)}
+                            onClick={() => renameCategory(cat.id, cat.name!)}
                             className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white text-sm px-5 py-2 rounded-lg shadow-md transition-all duration-200 transform hover:scale-105"
                           >
                             ✏️ Rename
                           </Button>
-                          
+
                           {imageCount > 0 ? (
                             <select
                               className="text-sm border-2 border-gray-200 rounded-lg px-4 py-2 bg-white text-gray-800 hover:border-gray-300 transition-all duration-200 min-w-[140px]"
-                              onChange={(e) => deleteCategory(cat.id, e.target.value)}
+                              onChange={(e) =>
+                                deleteCategory(cat.id, e.target.value)
+                              }
                               defaultValue=""
                             >
                               <option disabled value="">
                                 Move & Delete
                               </option>
                               {categories
-                                .filter((c) => c.id !== cat.id && c.name !== "All")
+                                .filter(
+                                  (c) => c.id !== cat.id && c.name !== "All"
+                                )
                                 .map((c) => (
                                   <option key={c.id} value={c.id}>
                                     Move to {c.name}
