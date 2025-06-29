@@ -1,10 +1,6 @@
 // ImageUpload.jsx - Updated component using ImageBB for image uploads
 import { onAuthStateChanged } from "firebase/auth";
-import {
-    addDoc,
-    collection,
-    onSnapshot,
-} from "firebase/firestore";
+import { addDoc, collection, onSnapshot } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
 import { Link, useNavigate } from "react-router-dom";
@@ -18,18 +14,22 @@ export default function ImageUpload() {
   const navigate = useNavigate();
   const [uploading, setUploading] = useState(false);
   const [currentCategory, setCurrentCategory] = useState<string>("");
-  const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
+  const [categories, setCategories] = useState<{ id: string; name: string }[]>(
+    []
+  );
   const [uploadProgress, setUploadProgress] = useState<{
     current: number;
     total: number;
     fileName: string;
   } | null>(null);
-  const [recentUploads, setRecentUploads] = useState<Array<{
-    name: string;
-    category: string;
-    timestamp: Date;
-    imageUrl: string;
-  }>>([]);
+  const [recentUploads, setRecentUploads] = useState<
+    Array<{
+      name: string;
+      category: string;
+      timestamp: Date;
+      imageUrl: string;
+    }>
+  >([]);
 
   useEffect(() => {
     const unsubAuth = onAuthStateChanged(auth, (user) => {
@@ -66,11 +66,12 @@ export default function ImageUpload() {
 
     setUploading(true);
     setUploadProgress({ current: 0, total: files.length, fileName: "" });
-    const uploads: Array<{ 
-      name: string; 
-      category: string; 
-      timestamp: Date; 
+    const uploads: Array<{
+      name: string;
+      category: string;
+      timestamp: Date;
       imageUrl: string;
+      deleteUrl: string;
     }> = [];
 
     try {
@@ -79,39 +80,47 @@ export default function ImageUpload() {
         setUploadProgress({
           current: i + 1,
           total: files.length,
-          fileName: file.name
+          fileName: file.name,
         });
 
         // Convert file to base64 for ImageBB upload
         const buffer = await file.arrayBuffer();
         const base64 = arrayBufferToBase64(buffer);
-        
+
         // Upload to ImageBB
-        const imageName = `${currentCategory}--${file.name.replace(/\.[^/.]+$/, "")}--${v4()}`;
-        const imageUrl = await uploadToImageBB(base64, imageName);
-        
+        const imageName = `${currentCategory}--${file.name.replace(
+          /\.[^/.]+$/,
+          ""
+        )}--${v4()}`;
+        const image = await uploadToImageBB(base64, imageName);
+
         // Store metadata in Firebase
         await addDoc(collection(db, "products"), {
           name: imageName,
           originalFileName: file.name,
           category: currentCategory,
-          imageUrl: imageUrl,
+          image: image,
+          imageUrl: image.url,
+          deleteUrl: image.delete_url,
           fileSize: file.size,
           fileType: file.type,
           uploadedAt: new Date(),
-          uploadedBy: auth.currentUser?.uid || "unknown"
+          uploadedBy: auth.currentUser?.uid || "unknown",
         });
 
         uploads.push({
           name: file.name,
           category: currentCategory,
           timestamp: new Date(),
-          imageUrl: imageUrl
+          imageUrl: image.url.toString(),
+          deleteUrl: image.delete_url.toString(),
         });
       }
 
-      setRecentUploads(prev => [...uploads, ...prev].slice(0, 10));
-      toast.success(`Successfully uploaded ${files.length} image(s) to ImageBB!`);
+      setRecentUploads((prev) => [...uploads, ...prev].slice(0, 10));
+      toast.success(
+        `Successfully uploaded ${files.length} image(s) to ImageBB!`
+      );
       // Reset the file input
       e.target.value = "";
     } catch (error) {
@@ -133,7 +142,7 @@ export default function ImageUpload() {
     if (files.length > 0) {
       // Create a fake event to reuse the upload logic
       const fakeEvent = {
-        target: { files, value: "" }
+        target: { files, value: "" },
       } as React.ChangeEvent<HTMLInputElement>;
       handleImageUpload(fakeEvent);
     }
@@ -169,7 +178,9 @@ export default function ImageUpload() {
               <h2 className="text-2xl font-bold text-gray-800 mb-2">
                 🏷️ Select Category
               </h2>
-              <p className="text-gray-600">Choose the category for your images</p>
+              <p className="text-gray-600">
+                Choose the category for your images
+              </p>
             </div>
             <div className="max-w-md mx-auto">
               <select
@@ -177,7 +188,9 @@ export default function ImageUpload() {
                 value={currentCategory}
                 onChange={(e) => setCurrentCategory(e.target.value)}
               >
-                <option value="" disabled>Choose a category</option>
+                <option value="" disabled>
+                  Choose a category
+                </option>
                 {categories.map((cat) => (
                   <option key={cat.id} value={cat.name}>
                     {cat.name}
@@ -188,7 +201,10 @@ export default function ImageUpload() {
                 <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-xl">
                   <p className="text-amber-800 text-center">
                     No categories found.
-                    <Link to="/admin/categories" className="text-amber-600 hover:text-amber-700 font-semibold ml-1">
+                    <Link
+                      to="/admin/categories"
+                      className="text-amber-600 hover:text-amber-700 font-semibold ml-1"
+                    >
                       Create one first →
                     </Link>
                   </p>
@@ -203,7 +219,10 @@ export default function ImageUpload() {
               <h2 className="text-2xl font-bold text-gray-800 mb-2">
                 📤 Upload Images
               </h2>
-              <p className="text-gray-600">Images will be uploaded to ImageBB and metadata stored in Firebase</p>
+              <p className="text-gray-600">
+                Images will be uploaded to ImageBB and metadata stored in
+                Firebase
+              </p>
             </div>
 
             {!currentCategory ? (
@@ -223,7 +242,7 @@ export default function ImageUpload() {
                   className="border-3 border-dashed border-green-300 rounded-xl p-12 text-center bg-gradient-to-br from-green-50 to-emerald-50 hover:from-green-100 hover:to-emerald-100 transition-all duration-300 cursor-pointer group"
                   onDragOver={handleDragOver}
                   onDrop={handleDrop}
-                  onClick={() => document.getElementById('file-input')?.click()}
+                  onClick={() => document.getElementById("file-input")?.click()}
                 >
                   <div className="text-6xl mb-4 group-hover:scale-110 transition-transform duration-300">
                     ☁️
@@ -232,7 +251,8 @@ export default function ImageUpload() {
                     Drop images here or click to browse
                   </h3>
                   <p className="text-green-600 text-lg mb-4">
-                    Selected category: <span className="font-semibold">{currentCategory}</span>
+                    Selected category:{" "}
+                    <span className="font-semibold">{currentCategory}</span>
                   </p>
                   <p className="text-green-500 mb-2">
                     Images will be uploaded to ImageBB cloud storage
@@ -254,7 +274,9 @@ export default function ImageUpload() {
                 {/* Alternative Upload Button */}
                 <div className="text-center">
                   <Button
-                    onClick={() => document.getElementById('file-input')?.click()}
+                    onClick={() =>
+                      document.getElementById("file-input")?.click()
+                    }
                     disabled={uploading}
                     className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white px-8 py-4 rounded-xl shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-105 text-lg"
                   >
@@ -274,19 +296,27 @@ export default function ImageUpload() {
                   🚀 Uploading to ImageBB
                 </h3>
                 <p className="text-gray-600">
-                  Processing {uploadProgress.current} of {uploadProgress.total} images
+                  Processing {uploadProgress.current} of {uploadProgress.total}{" "}
+                  images
                 </p>
               </div>
               <div className="max-w-lg mx-auto">
                 <div className="bg-gray-200 rounded-full h-4 mb-4">
                   <div
                     className="bg-gradient-to-r from-blue-500 to-green-500 h-4 rounded-full transition-all duration-300"
-                    style={{ width: `${(uploadProgress.current / uploadProgress.total) * 100}%` }}
+                    style={{
+                      width: `${
+                        (uploadProgress.current / uploadProgress.total) * 100
+                      }%`,
+                    }}
                   />
                 </div>
                 <div className="text-center">
                   <p className="text-sm text-gray-600 mb-2">
-                    Currently uploading: <span className="font-semibold">{uploadProgress.fileName}</span>
+                    Currently uploading:{" "}
+                    <span className="font-semibold">
+                      {uploadProgress.fileName}
+                    </span>
                   </p>
                   <div className="flex justify-center items-center space-x-2">
                     <svg
@@ -309,7 +339,9 @@ export default function ImageUpload() {
                         d="M4 12a8 8 0 018-8v8z"
                       />
                     </svg>
-                    <span className="text-sm text-gray-600">Uploading to cloud...</span>
+                    <span className="text-sm text-gray-600">
+                      Uploading to cloud...
+                    </span>
                   </div>
                 </div>
               </div>
@@ -323,23 +355,40 @@ export default function ImageUpload() {
                 <h3 className="text-2xl font-bold text-gray-800 mb-2">
                   ✅ Recent Uploads
                 </h3>
-                <p className="text-gray-600">Successfully uploaded to ImageBB</p>
+                <p className="text-gray-600">
+                  Successfully uploaded to ImageBB
+                </p>
               </div>
               <div className="space-y-3 max-h-64 overflow-y-auto">
                 {recentUploads.map((upload, index) => (
-                  <div key={index} className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-green-50 rounded-lg border border-blue-200">
+                  <div
+                    key={index}
+                    className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-green-50 rounded-lg border border-blue-200"
+                  >
                     <div className="flex items-center space-x-3">
                       <div className="text-blue-600">
-                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        <svg
+                          className="w-5 h-5"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                            clipRule="evenodd"
+                          />
                         </svg>
                       </div>
                       <div className="flex-1">
-                        <p className="font-semibold text-gray-800">{upload.name}</p>
-                        <p className="text-sm text-gray-600">Category: {upload.category}</p>
-                        <a 
-                          href={upload.imageUrl} 
-                          target="_blank" 
+                        <p className="font-semibold text-gray-800">
+                          {upload.name}
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          Category: {upload.category}
+                        </p>
+                        <a
+                          href={upload.imageUrl}
+                          target="_blank"
                           rel="noopener noreferrer"
                           className="text-xs text-blue-600 hover:text-blue-800 truncate block max-w-xs"
                         >

@@ -4,8 +4,8 @@ import {
   collection,
   onSnapshot,
 } from "firebase/firestore";
-import React, { useEffect, useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "../components/ui/button";
 import { auth, db } from "../utils/firebase";
 
@@ -36,9 +36,9 @@ export default function AdminPanel() {
       const imageData: { url: string; category: string }[] = [];
       snapshot.forEach((doc) => {
         const data = doc.data();
-        if (data.image && data.category) {
+        if (data.imageUrl && data.category) {
           imageData.push({
-            url: `data:image/jpeg;base64,${data.image}`,
+            url: data.imageUrl,
             category: data.category,
           });
         }

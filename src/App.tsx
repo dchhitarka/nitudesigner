@@ -6,12 +6,14 @@ import CategoryManagement from "./pages/CategoryManagement";
 import ImageUpload from "./pages/ImageUpload";
 import LehangaStore from "./pages/LehangaStore";
 import ProtectedRoute from "./pages/ProtectedRoute";
+import SharedImage from "./pages/SharedImage";
 
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<LehangaStore />} />
+        <Route path="/shared/:imageName" element={<SharedImage />} />
         <Route path="/admin/login" element={<AdminLogin />} />
         {/* Protected Admin Routes */}
         <Route 

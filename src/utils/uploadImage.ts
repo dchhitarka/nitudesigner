@@ -1,8 +1,8 @@
 export const uploadToImageBB = async (
   base64: string,
   name: string
-): Promise<string> => {
-  const apiKey = "d022b41450faa8818ce7037492010f42"; // Replace with your actual ImageBB API key
+): Promise<any> => {
+  const apiKey = import.meta.env.VITE_IMAGE_BB_API_KEY;
 
   const formData = new FormData();
   formData.append("image", base64.replace(/^data:image\/\w+;base64,/, ""));
@@ -17,7 +17,7 @@ export const uploadToImageBB = async (
 
   const data = await response.json();
   if (data.success) {
-    return data.data.url;
+    return data.data;
   } else {
     throw new Error("Image upload failed");
   }

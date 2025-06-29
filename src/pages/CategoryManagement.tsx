@@ -167,14 +167,14 @@ export default function CategoryManagement() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-purple-50">
+    <div className="min-h-screen min-w-screen bg-gradient-to-br from-pink-50 via-white to-purple-50">
       <div className="px-4 sm:px-6 lg:px-8 py-8">
         <div className="max-w-4xl mx-auto">
           {/* Header Section */}
           <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 mb-8">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div className="text-center sm:text-left">
-                <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                <h1 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
                   Category Management
                 </h1>
                 <p className="text-gray-600 text-base mt-2">

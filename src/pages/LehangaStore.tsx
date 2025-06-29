@@ -1,12 +1,21 @@
 /* Enhanced LehangaStore with improved mobile-first styling */
-import { addDoc, collection, onSnapshot } from "firebase/firestore";
+import {
+  addDoc,
+  collection,
+  getDocs,
+  onSnapshot,
+  query,
+  where,
+} from "firebase/firestore";
 import { useEffect, useState } from "react";
 import Modal from "react-modal";
 import { Button } from "../components/ui/button";
 import { db } from "../utils/firebase";
 
 export default function LehangaStore() {
-  const [images, setImages] = useState<{ url: string; category: string }[]>([]);
+  const [images, setImages] = useState<
+    { url: string; category: string; name: string }[]
+  >([]);
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
   const [favorites, setFavorites] = useState<string[]>(() =>
@@ -20,17 +29,38 @@ export default function LehangaStore() {
     { id: "all", name: "All" },
   ]);
 
+  const [adminUser, setAdminUser] = useState<{
+    id: string;
+    number: string;
+    role: string;
+  } | null>(null);
+
   // Fetch images from Firestore
   useEffect(() => {
+    const getAdminUser = async () => {
+      const userRef = collection(db, "users");
+      const q = query(userRef, where("role", "==", "ADMIN"));
+      const querySnapshot = await getDocs(q);
+      const adminUserData = querySnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as { id: string; number: string; role: string }[];
+      console.log(adminUserData);
+
+      setAdminUser(adminUserData[0]);
+    };
+
+    getAdminUser();
     const productsRef = collection(db, "products");
     const unsubImages = onSnapshot(productsRef, (snapshot) => {
-      const imageData: { url: string; category: string }[] = [];
+      const imageData: { url: string; category: string; name: string }[] = [];
       snapshot.forEach((doc) => {
         const data = doc.data();
-        if (data.image && data.category) {
+        if (data.imageUrl && data.category) {
           imageData.push({
-            url: `data:image/jpeg;base64,${data.image}`,
+            url: data.imageUrl,
             category: data.category,
+            name: data.name,
           });
         }
       });
@@ -39,7 +69,9 @@ export default function LehangaStore() {
 
     const catRef = collection(db, "categories");
     const unsubCats = onSnapshot(catRef, (snapshot) => {
-      const catList: any[] = [{ id: "all", name: "All" }];
+      const catList: { id: string; name: string }[] = [
+        { id: "all", name: "All" },
+      ];
       snapshot.forEach((doc) => {
         catList.push({ id: doc.id, ...doc.data() });
       });
@@ -69,37 +101,61 @@ export default function LehangaStore() {
   };
 
   const shareOnWhatsApp = async () => {
+    // Create sharing URLs for selected images
+    const shareUrls = selectedImages.map((url) => {
+      const imageData = images.find((img) => img.url === url);
+      if (imageData) {
+        return `${window.location.origin}/shared/${encodeURIComponent(
+          imageData.name
+        )}`;
+      }
+      return url;
+    });
+
     const message = encodeURIComponent(
-      `Hello! I'm interested in these designs: ${selectedImages.join("")}`
+      `Hello! I'm interested in these designs: \n\n${shareUrls.join("\n\n")}`
     );
     try {
       const statsRef = collection(db, "shares");
       await addDoc(statsRef, {
         urls: selectedImages,
+        shareUrls,
         sharedAt: new Date(),
         type: "multi",
       });
     } catch (err) {
-      // ignore
+      console.log(err);
     }
-    window.open(`https://wa.me/7976511023?text=${message}`, "_blank");
+    window.open(`https://wa.me/${adminUser?.number}?text=${message}`, "_blank");
   };
 
   const shareSingleImage = async (url: string) => {
+    // Find the image data to get the name
+    const imageData = images.find((img) => img.url === url);
+    if (!imageData || !adminUser) return;
+
+    // Create the sharing URL
+    const shareUrl = `${window.location.origin}/shared/${encodeURIComponent(
+      imageData.name
+    )}`;
+
     const message = encodeURIComponent(
-      `Hi, I'm interested in this design: ${url}`
+      `Hi, I'm interested in this design: \n\n${shareUrl}`
     );
+
     try {
       const statsRef = collection(db, "shares");
       await addDoc(statsRef, {
         url,
+        name: imageData.name,
+        shareUrl,
         sharedAt: new Date(),
         type: "single",
       });
     } catch (err) {
-      // ignore
+      console.log(err);
     }
-    window.open(`https://wa.me/7976511023?text=${message}`, "_blank");
+    window.open(`https://wa.me/${adminUser.number}?text=${message}`, "_blank");
   };
 
   const openModal = (url: string) => {
@@ -116,7 +172,7 @@ export default function LehangaStore() {
   };
 
   const filteredImages = images.filter((img) => {
-    console.log(img)
+    console.log(img);
     const inCategory =
       currentCategory === "All" || img.category === currentCategory;
     const matchesSearch = img.url
@@ -135,7 +191,8 @@ export default function LehangaStore() {
               Nitu Designer
             </h1>
             <p className="text-gray-600 text-sm sm:text-base max-w-2xl mx-auto">
-              Explore our exclusive collection. Select your favorites and share with us on WhatsApp!
+              Explore our exclusive collection. Select your favorites and share
+              with us on WhatsApp!
             </p>
           </div>
 
@@ -143,7 +200,8 @@ export default function LehangaStore() {
           {favorites.length > 0 && (
             <div className="mb-8 sm:mb-10">
               <h2 className="text-lg sm:text-xl font-semibold mb-4 text-pink-600 flex items-center gap-2">
-                <span className="text-xl sm:text-2xl">❤️</span> My Favorites ({favorites.length})
+                <span className="text-xl sm:text-2xl">❤️</span> My Favorites (
+                {favorites.length})
               </h2>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
                 {favorites.map((url) => (
@@ -211,14 +269,14 @@ export default function LehangaStore() {
                     alt="lehanga design"
                     className="w-full h-full object-cover"
                   />
-                  
+
                   {/* Selection Indicator */}
                   {selectedImages.includes(url) && (
                     <div className="absolute top-2 right-2 bg-green-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">
                       ✓
                     </div>
                   )}
-                  
+
                   {/* Favorite Button */}
                   <button
                     onClick={(e) => {
@@ -232,7 +290,7 @@ export default function LehangaStore() {
                   </button>
 
                   {/* Hover Overlay */}
-                  <div className="absolute inset-0 bg-opacity-0 group-hover:bg-opacity-40 transition-all duration-300 flex items-end justify-center pb-3">
+                  <div className="absolute focus-within:opacity-100 inset-0 bg-opacity-0 group-hover:bg-opacity-40 transition-all duration-300 flex items-end justify-center pb-3">
                     <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 transform translate-y-2 group-hover:translate-y-0">
                       <Button
                         onClick={(e) => {
@@ -339,7 +397,7 @@ export default function LehangaStore() {
               ×
             </button>
           </div>
-          
+
           {/* Modal Content */}
           <div className="p-4 flex justify-center items-center bg-gray-50 max-h-[calc(90vh-100px)] overflow-auto">
             <img

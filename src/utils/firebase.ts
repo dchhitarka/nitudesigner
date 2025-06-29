@@ -4,13 +4,13 @@ import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
 export const firebaseConfig = {
-  apiKey: "AIzaSyBxXIA2ZRntgZwXXXSR-3WkhpmakNh84Io",
-  authDomain: "nitu-designer.firebaseapp.com",
-  projectId: "nitu-designer",
-  storageBucket: "nitu-designer.firebasestorage.app",
-  messagingSenderId: "218608537340",
-  appId: "1:218608537340:web:783c885c87e5a830bfd179",
-  measurementId: "G-E2F1LFR7M7",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_DOMAIN,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MSG_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
 };
 
 export const app = initializeApp(firebaseConfig);
