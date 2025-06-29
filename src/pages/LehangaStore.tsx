@@ -296,7 +296,7 @@ export default function LehangaStore() {
                           e.stopPropagation();
                           openModal(url);
                         }}
-                        className="bg-white text-gray-800 opacity-70 hover:bg-gray-100 text-xs sm:text-sm px-1 md:px-2 py-1 md:py-2 h-10 sm:w-8 md:h-auto font-medium shadow-md"
+                        className="bg-white text-gray-800 opacity-70 hover:bg-gray-100 text-xs sm:text-sm px-1 md:px-2 py-1 md:py-2 h-10 sm:w-8 md:h-auto md:w-auto font-medium shadow-md"
                       >
                         <span className="md:mr-1">🔍</span>
                         <span className="hidden md:block">View</span>
@@ -306,7 +306,7 @@ export default function LehangaStore() {
                           e.stopPropagation();
                           shareSingleImage(url);
                         }}
-                        className="bg-blue-500 hover:bg-blue-600 opacity-70 text-white text-xs sm:text-sm px-1 md:px-2 py-1 md:py-2 h-10 sm:w-8 md:h-auto font-medium shadow-md"
+                        className="bg-blue-500 hover:bg-blue-600 opacity-70 text-white text-xs sm:text-sm px-1 md:px-2 py-1 md:py-2 h-10 sm:w-8 md:h-auto md:w-auto font-medium shadow-md"
                       >
                         <span className="md:mr-1">📤</span>
                         <span className="hidden md:block">Share</span>
